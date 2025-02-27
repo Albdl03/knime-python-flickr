@@ -8,7 +8,7 @@ LOGGER = logging.getLogger(__name__)
 
 # Define sub-category
 image_category = knext.category(
-    path="/community/vit_ft",
+    path="/community/flickr_images",
     level_id="flickrimg",
     name="Flickr Image Downloader",
     description="Node for downloading image URLs from Flickr",
