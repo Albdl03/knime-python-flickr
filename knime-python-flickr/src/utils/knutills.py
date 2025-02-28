@@ -19,6 +19,14 @@ LOCAL_DATE_TIME_VALUE = "org.knime.core.data.v2.time.LocalDateTimeValueFactory"
 PNG_IMAGE_VALUE = "org.knime.core.data.image.png.PNGImageValueFactory"
 
 
+main_category = knext.category(
+    path="/community/",
+    level_id="flickr_img",
+    name="Flickr Images Retrieval",
+    description="Nodes for Flickr Images Retrieval",
+    icon="icons/icon.png",
+)
+
 def is_zoned_datetime(column: knext.Column) -> bool:
     """
     Checks if date&time column has the timezone or not.

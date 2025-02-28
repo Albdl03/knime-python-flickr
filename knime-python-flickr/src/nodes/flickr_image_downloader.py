@@ -3,23 +3,14 @@ import knime.extension as knext
 import pandas as pd
 import logging
 from PIL import Image
-
+from utils import knutills as kutil
 LOGGER = logging.getLogger(__name__)
-
-# Define sub-category
-image_category = knext.category(
-    path="/community/",
-    level_id="flickrimg",
-    name="Flickr Image Downloader",
-    description="Node for downloading image URLs from Flickr",
-    icon="icons/icon.png",
-)
 
 @knext.node(
     name="Flickr Image Downloader",
     node_type=knext.NodeType.SOURCE,
-    icon_path="icons/icon.png",
-    category=image_category,
+    icon_path="icons/flickr.png",
+    category=kutil.main_category,
     id="img-downloader",
 )
 @knext.output_table(
@@ -28,7 +19,11 @@ image_category = knext.category(
 )
 class FlickrImageDownloader:
     """
+    Flickr Image Downloader
+
+    ADD A LONGER DESCRIPTION HERE
     Node for downloading images from Flickr using a search term, an API key, and the desired number of images.
+
     """
 
     credential_param = knext.StringParameter(
@@ -116,7 +111,7 @@ class FlickrImageDownloader:
                     or "secret" not in photo
                     or not photo["secret"]
                 ):
-                    LOGGER.warning(f"Skipping invalid photo: {photo}")
+                    #LOGGER.warning(f"Skipping invalid photo: {photo}")
                     continue  # Skip invalid entries
 
                 photo_url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
@@ -129,7 +124,7 @@ class FlickrImageDownloader:
 
             page += 1  # Move to the next page
 
-        LOGGER.info(f"Retrieved {len(urls)} unique image URLs from Flickr.")
+        #LOGGER.info(f"Retrieved {len(urls)} unique image URLs from Flickr.")
 
         # Create a DataFrame with the image URLs
         result_df = pd.DataFrame()
