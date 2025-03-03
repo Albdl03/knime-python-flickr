@@ -5,6 +5,7 @@ import logging
 from PIL import Image
 from utils import knutills as kutil
 LOGGER = logging.getLogger(__name__)
+import io
 
 @knext.node(
     name="Flickr Image Downloader",
@@ -21,25 +22,25 @@ class FlickrImageDownloader:
     """
     Flickr Image Downloader
 
-    The Flickr Image Downloader Node is designed to download images from Flickr based on a specified search term. 
+    The Flickr Image Downloader Node downloads images from Flickr based on a specified search term. 
     It uses the Flickr API to search for images and retrieve their URLs. 
-    The class allows users to specify the number of images to download and requires a Flickr API key for authentication. 
+    The node allows users to specify the number of images to download and requires a Flickr API key for authentication. 
     The downloaded images are then returned as a KNIME table containing the image.
 
     Key functionalities:
 
-    -   Configuring the node with parameters such as the Flickr API key, search term, and number of images to download.
-    -   Fetching image URLs from Flickr using the API.
+    -   Configuring the node with the following parameters: Flickr API key, search term, and number of images to download.
+    -   Fetching image URLs from Flickr using its API.
     -   Handling pagination to retrieve the specified number of images (the maximum number of images per page is 500).
     -   Validating and filtering the retrieved image metadata.
-    -   Downloading the images and converting them into a format suitable for KNIME.
+    -   Downloading the images and converting them to PNG.
     -   Returning the images as a KNIME table.
 
     """
 
     credential_param = knext.StringParameter(
         label="Flickr API Key",
-        description="Choose one of the connected credentials (Pass key through credential config password field)",
+        description="The credentials containing the Flickr API key in its *password* field (the *username* is ignored).",
         choices=lambda a: knext.DialogCreationContext.get_credential_names(a),
     )
 
@@ -49,10 +50,9 @@ class FlickrImageDownloader:
         default_value="",
     )
 
-    # The maximum nuumber of images that can be downloaded for every page is 500
-    no_images = knext.IntParameter(
+    num_images = knext.IntParameter(
         label="Number of Images",
-        description="Number of images to retrieve from Flickr.",
+        description="Number of images to retrieve from Flickr between 1 and 20000.",
         default_value=10,
         min_value=1,
         max_value=20000,
@@ -66,28 +66,27 @@ class FlickrImageDownloader:
         return knext.Column(name="Image", ktype=knext.logical(Image.Image))
 
     def execute(self, ctx: knext.ExecutionContext):
-        # Fetch credentials from KNIME node
         credentials = ctx.get_credentials(self.credential_param)
         self.api_key = (
             credentials.password
-        )  # Use the password field to store the API key
+        )
         base_url = "https://www.flickr.com/services/rest/"
 
         max_per_page = 500  # Flickr's per-page limit
-        total_images = self.no_images  # User-requested total images
+        num_requested_images = self.num_images  # User-requested total images
         urls = []
         page = 1
 
-        while len(urls) < total_images:
-            remaining_images = total_images - len(urls)
-            per_page = min(remaining_images, max_per_page)  # Limit per request
+        while len(urls) < num_requested_images:
+            num_remaining_images = num_requested_images - len(urls)
+            per_page = min(num_remaining_images, max_per_page)  # Limit per request
 
             params = {
                 "method": "flickr.photos.search",
                 "api_key": self.api_key,
                 "text": self.search_term,
                 "per_page": per_page,
-                "page": page,  # Update page number
+                "page": page,
                 "format": "json",
                 "nojsoncallback": 1,
             }
@@ -99,6 +98,8 @@ class FlickrImageDownloader:
                     f"Failed to fetch data from Flickr API: {response.text}"
                 )
 
+            # TODO is the following comment correct? Then delete this TODO
+            # data contains the entire page, of which we try to obtain up to 500 photos
             data = response.json()
 
             if "photos" not in data or "photo" not in data["photos"]:
@@ -107,7 +108,7 @@ class FlickrImageDownloader:
             photo_list = data["photos"]["photo"]
 
             if not photo_list:
-                LOGGER.warning("No more images available. Stopping early.")
+                LOGGER.info("No more images available. Stopping early.")
                 break  # Stop if no more images available
 
             for photo in photo_list:
@@ -122,32 +123,30 @@ class FlickrImageDownloader:
                     or "secret" not in photo
                     or not photo["secret"]
                 ):
-                    #LOGGER.warning(f"Skipping invalid photo: {photo}")
+                    LOGGER.info(f"Skipping invalid photo: {photo}")
                     continue  # Skip invalid entries
 
                 photo_url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
 
+                # TODO Do we really need the following if statement? Will there really be duplicates? This is a very expensive computation. If not needed, delete.
                 if photo_url not in urls:  # Prevent duplicates
                     urls.append(photo_url)
 
-                if len(urls) >= total_images:
-                    break  # Stop if we have enough images
+                if len(urls) >= num_requested_images:
+                    break  # Stop if the amount of requested images is reached
 
             page += 1  # Move to the next page
 
-        #LOGGER.info(f"Retrieved {len(urls)} unique image URLs from Flickr.")
+        LOGGER.debug(f"Retrieved {len(urls)} unique image URLs from Flickr.")
 
         # Create a DataFrame with the image URLs
-        result_df = pd.DataFrame()
-        result_df["Image"] = [self.__open_image_from_url(i) for i in urls]
+        df = pd.DataFrame()
+        df["Image"] = [self.__open_image_from_url(i) for i in urls]
 
-        # Report progress
         ctx.set_progress(0.9, "Image retrieval complete.")
-        return knext.Table.from_pandas(result_df)
+        return knext.Table.from_pandas(df)
 
     def __open_image_from_url(self, url):
-        import io
-
         response = requests.get(url)
         if response.status_code == 200:
             img = Image.open(io.BytesIO(response.content))
@@ -155,5 +154,5 @@ class FlickrImageDownloader:
             img.save(buffer, format="PNG")
             buffer.seek(0)
             return Image.open(buffer)
-        else:
+        else: # TODO Future work: consider adding a checkbox to the config dialog to allow omitting this error-raising and just logging non-functioning URLs.
             raise ValueError(f"Failed to fetch image from URL: {url}")
