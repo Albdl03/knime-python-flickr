@@ -24,7 +24,7 @@ class FlickrImageDownloader:
     The Flickr Image Downloader Node is designed to download images from Flickr based on a specified search term. 
     It uses the Flickr API to search for images and retrieve their URLs. 
     The class allows users to specify the number of images to download and requires a Flickr API key for authentication. 
-    The downloaded images are then returned as a KNIME table containing the image.
+    The downloaded images are then returned as a KNIME table containing the images.
 
     Key functionalities:
 
