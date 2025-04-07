@@ -1,8 +1,6 @@
 # KNIME Nodes for Vision Transformers
 
-[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
-
-This repository provides a KNIME extension for fine-tuning and predicting with Vision Transformer (ViT) models, along with a Flickr image downloader for dataset generation. The nodes are fully developed in Python using PyTorch and HuggingFace Transformers, and can be integrated into your KNIME workflows via the KNIME Analytics Platform.
+This repository provides a KNIME extension for fine-tuning and predicting with Vision Transformer (ViT) models. The nodes are fully developed in Python using PyTorch and HuggingFace Transformers, and can be integrated into your KNIME workflows via the KNIME Analytics Platform.
 
 ## Features
 
@@ -16,11 +14,6 @@ This repository provides a KNIME extension for fine-tuning and predicting with V
   - Predict labels and class probabilities on new image data.
   - Auto-decodes predictions to original label strings.
   - Customizable output column names and probability formatting.
-
-- **Flickr Image Downloader Node**
-  - Retrieve large sets of image URLs from Flickr using an API key.
-  - Useful for building custom datasets based on search terms.
-  - Configurable number of images (up to 20,000).
 
 ## Extension Info
 
